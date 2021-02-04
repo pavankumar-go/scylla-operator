@@ -2,14 +2,11 @@ all: test local-build
 
 # Image URL to use all building/pushing image targets
 REPO		?= scylladb/scylla-operator
-TAG			?= $(shell ./version.sh)
+TAG			?= $(shell ./scripts/version.sh)
 IMG			?= $(REPO):$(TAG)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS 	?= "crd:trivialVersions=true"
 # Helm repo parameters
-HELM_BUCKET 	?= "gs://scylla-operator-charts"
-HELM_LOCAL_REPO	?= "helm/repo"
-HELM_REPOSITORY	?= "https://scylla-operator-charts.storage.googleapis.com"
 
 .EXPORT_ALL_VARIABLES:
 DOCKER_BUILDKIT		:= 1
@@ -96,14 +93,15 @@ vendor:
 local-build: fmt vet vendor
 	CGO_ENABLED=0 go build -trimpath -a -o bin/scylla-operator github.com/scylladb/scylla-operator/pkg/cmd
 
+# Build Helm charts and publish them in Development GCS repo
+.PHONY: dev-helm-release
+dev-helm-release:
+	DEV_REPO=true scripts/release-helm.sh
+
 # Build Helm charts and publish them in GCS repo
 .PHONY: helm-release
 helm-release:
-	mkdir -p $(HELM_LOCAL_REPO)
-	gsutil rsync -d $(HELM_BUCKET) $(HELM_LOCAL_REPO)
-	helm package helm/scylla-operator helm/scylla helm/scylla-manager -d $(HELM_LOCAL_REPO)
-	helm repo index $(HELM_LOCAL_REPO) --url $(HELM_REPOSITORY) --merge $(HELM_LOCAL_REPO)/index.yaml
-	gsutil rsync -d $(HELM_LOCAL_REPO) $(HELM_BUCKET)
+	scripts/release-helm.sh
 
 release:
 	goreleaser --rm-dist

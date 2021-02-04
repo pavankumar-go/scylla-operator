@@ -19,9 +19,10 @@
 set -euo pipefail
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+CHANNEL="nightly"
+
 if [[ $BRANCH =~ ^v[0-9]+\.[0-9]+$ ]]; then
-  echo $(git describe --tags --always --abbrev=0)
-  exit 0
+  CHANNEL="stable"
 fi
 
-echo 'nightly'
+echo ${CHANNEL}
