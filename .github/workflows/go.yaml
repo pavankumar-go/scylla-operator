@@ -73,5 +73,28 @@ jobs:
         working-directory: ${{ env.working-directory }}
         run: make docker-push
 
+  publish-helm:
+    name: Publish nightly Helm Charts
+    needs: build
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Cloud SDK
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Publish nightly Helm Chart
+        if: ${{ github.event_name != 'pull_request' }}
+        working-directory: ${{ env.working-directory }}
+        env:
+          CHANNEL: nightly
+        run: make helm-release
+
 # TODO:
 # - E2E
